@@ -8,11 +8,14 @@ from database import init_db, save_result
 app = FastAPI(title="Ai Adaptiv Edu")
 init_db() # Dastur yonganda bazani (va yangi savollarni) tayyorlaydi
 
-# Static fayllar (CSS uchun)
+# Static fayllar (CSS/JS uchun)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# --- FOYDALANUVCHI QISMI (Frontend) ---
 
 @app.get("/", response_class=HTMLResponse)
 def home():
+    """Asosiy sahifani yuklaydi"""
     with open("templates/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
@@ -63,7 +66,8 @@ async def check_adaptive_answer(request: Request):
     conn = sqlite3.connect('edu_platform.db')
     cursor = conn.cursor()
     cursor.execute('SELECT correct_answer FROM questions WHERE id = ?', (question_id,))
-    correct_answer = cursor.fetchone()[0]
+    res = cursor.fetchone()
+    correct_answer = res[0] if res else ""
     conn.close()
 
     is_correct = user_answer.strip().lower() == correct_answer.strip().lower()
@@ -98,8 +102,40 @@ async def check_adaptive_answer(request: Request):
         "feedback": feedback
     }
 
+# --- ADMIN PANEL QISMI ---
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    """Admin panelning asosiy sahifasini yuklaydi"""
+    try:
+        with open("templates/admin.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "Xatolik: templates/admin.html fayli topilmadi!"
+
+@app.get("/api/results")
+def get_results_api():
+    """Bazadagi natijalarni JSON formatida admin panelga yuboradi"""
+    conn = sqlite3.connect('edu_platform.db')
+    cursor = conn.cursor()
+    # Natijalarni vaqti bo'yicha saralab olish
+    cursor.execute('SELECT student_name, total_percent, summary, timestamp FROM results ORDER BY timestamp DESC')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for row in rows:
+        results.append({
+            "name": row[0],
+            "percent": row[1],
+            "feedback": row[2],
+            "date": row[3]
+        })
+    return results
+
 @app.get("/get_results")
 def get_results():
+    """Eski formatdagi natijalarni olish (ixtiyoriy)"""
     conn = sqlite3.connect('edu_platform.db')
     cursor = conn.cursor()
     cursor.execute('SELECT student_name, total_percent, summary FROM results ORDER BY timestamp DESC')
