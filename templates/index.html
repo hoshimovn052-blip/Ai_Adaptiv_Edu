@@ -1,137 +1,89 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ai Adaptiv Edu - Kelajak Ta'limi</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <style>
-        :root { --primary-color: #4e73df; --secondary-color: #1cc88a; }
-        body { background-color: #f8f9fc; font-family: 'Inter', sans-serif; }
-        .hero-section { background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%); color: white; padding: 60px 0; border-radius: 0 0 50px 50px; }
-        .card-custom { border: none; border-radius: 20px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); transition: 0.3s; }
-        .test-card { display: none; }
-        .progress { height: 10px; border-radius: 5px; margin-bottom: 20px; }
-        .btn-start { padding: 15px 40px; font-size: 1.2rem; border-radius: 30px; transition: 0.3s; }
-        .btn-start:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-    </style>
-</head>
-<body>
+<script>
+    let name = "", currentDifficulty = 1, score = 0, step = 1, currentQuestionId = null;
 
-    <div id="landing-page" class="hero-section text-center animate__animated animate__fadeIn">
-        <div class="container">
-            <h1 class="display-4 fw-bold">Ai Adaptiv Edu</h1>
-            <p class="lead">Sun'iy intellekt asosida kasbiy ta'limni individuallashtirish platformasi</p>
-            <div class="mt-5 mx-auto" style="max-width: 400px;">
-                <input type="text" id="student-name" class="form-control form-control-lg mb-3 shadow" placeholder="Ismingizni kiriting...">
-                <button class="btn btn-light btn-start fw-bold text-primary" onclick="initiateTest()">Testni Boshlash</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="container my-5" id="quiz-container" style="display: none;">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card card-custom p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 id="subject-title" class="text-primary">Fan nomi</h4>
-                        <div class="badge bg-danger p-2" id="timer-display">Vaqt: 10:00</div>
-                    </div>
-                    <div class="progress">
-                        <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
-                    </div>
-                    
-                    <div id="question-box" class="animate__animated animate__fadeInRight">
-                        </div>
-
-                    <div class="mt-4 d-flex justify-content-between">
-                        <button class="btn btn-outline-secondary" onclick="prevQuestion()" id="prev-btn" style="display: none;">Orqaga</button>
-                        <button class="btn btn-primary" onclick="nextQuestion()" id="next-btn">Keyingisi</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container my-5" id="result-page" style="display: none;">
-        <div class="text-center card card-custom p-5 animate__animated animate__zoomIn">
-            <h2 class="text-success mb-4">Sizning natijangiz!</h2>
-            <div class="display-1 fw-bold text-primary mb-3" id="final-percent">0%</div>
-            <p class="lead" id="ai-feedback"></p>
-            <hr>
-            <div id="subject-breakdown" class="row text-start mt-4"></div>
-            <button class="btn btn-primary mt-4" onclick="location.reload()">Qayta topshirish</button>
-        </div>
-    </div>
-
-    <script>
-        let questions = [], currentIdx = 0, name = "", timeLeft = 600, timer;
-
-        function initiateTest() {
-            name = document.getElementById("student-name").value;
-            if(!name) return alert("Iltimos, ismingizni yozing!");
-            
-            fetch(`/start?name=${name}`).then(res => res.json()).then(data => {
-                questions = data.questions;
+    function initiateTest() {
+        name = document.getElementById("student-name").value;
+        if(!name) return alert("Iltimos, ismingizni yozing!");
+        
+        // Testni boshlash - 1-darajali savolni olish
+        fetch(`/start?name=${name}`)
+            .then(res => res.json())
+            .then(data => {
                 document.getElementById("landing-page").style.display = "none";
                 document.getElementById("quiz-container").style.display = "block";
-                showQuestion();
-                startTimer();
+                displayQuestion(data.question);
+                currentDifficulty = data.current_difficulty;
+                step = data.step;
+                score = data.score;
             });
-        }
+    }
 
-        function showQuestion() {
-            const q = questions[currentIdx];
-            document.getElementById("subject-title").innerText = q.subject;
-            document.getElementById("question-box").innerHTML = `
-                <h3 class="mb-4">${q.question}</h3>
-                <input type="text" id="ans-${currentIdx}" class="form-control form-control-lg" placeholder="Javobingizni yozing...">
-            `;
-            updateProgress();
-        }
+    function displayQuestion(q) {
+        if(!q) return;
+        currentQuestionId = q.id;
+        document.getElementById("subject-title").innerText = q.subject + ` (Daraja: ${currentDifficulty})`;
+        
+        // Variantlarni radio-tugma ko'rinishida chiqarish (Adaptivlik uchun qulay)
+        let optionsHtml = q.options.map(opt => `
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="quiz-option" id="${opt}" value="${opt}">
+                <label class="form-check-label w-100 p-2 border rounded" for="${opt}">
+                    ${opt}
+                </label>
+            </div>
+        `).join('');
 
-        function updateProgress() {
-            const p = ((currentIdx + 1) / questions.length) * 100;
-            document.getElementById("progress-bar").style.width = p + "%";
-            document.getElementById("next-btn").innerText = currentIdx === questions.length - 1 ? "Tugatish" : "Keyingisi";
-        }
+        document.getElementById("question-box").innerHTML = `
+            <h3 class="mb-4">${q.question}</h3>
+            <div id="options-container">${optionsHtml}</div>
+        `;
+        
+        // Progress barni yangilash (10 ta savolga mo'ljallangan)
+        document.getElementById("progress-bar").style.width = (step * 10) + "%";
+        document.getElementById("next-btn").innerText = step === 10 ? "Tugatish" : "Keyingisi";
+    }
 
-        function nextQuestion() {
-            if (currentIdx < questions.length - 1) {
-                currentIdx++;
-                showQuestion();
+    function nextQuestion() {
+        const selected = document.querySelector('input[name="quiz-option"]:checked');
+        if(!selected) return alert("Iltimos, javobni tanlang!");
+
+        const answerData = {
+            name: name,
+            question_id: currentQuestionId,
+            answer: selected.value,
+            current_difficulty: currentDifficulty,
+            score: score,
+            step: step
+        };
+
+        // Serverga tekshirish uchun yuborish
+        fetch("/check", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(answerData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.finished) {
+                showResult(data);
             } else {
-                finishQuiz();
+                // Adaptiv ma'lumotlarni yangilash va keyingi savolni ko'rsatish
+                currentDifficulty = data.next_difficulty;
+                score = data.score;
+                step = data.step;
+                
+                // Feedback (To'g'ri/Xato) haqida qisqa ma'lumot chiqarish (ixtiyoriy)
+                console.log(data.feedback); 
+                
+                displayQuestion(data.question);
             }
-        }
+        });
+    }
 
-        function startTimer() {
-            timer = setInterval(() => {
-                timeLeft--;
-                let m = Math.floor(timeLeft/60), s = timeLeft%60;
-                document.getElementById("timer-display").innerText = `Vaqt: ${m}:${s<10?'0':''}${s}`;
-                if(timeLeft <= 0) finishQuiz();
-            }, 1000);
-        }
-
-        function finishQuiz() {
-            clearInterval(timer);
-            const answers = questions.map((q, i) => ({
-                subject: q.subject, question: q.question, answer: document.getElementById(`ans-${i}`).value
-            }));
-            
-            fetch("/check", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({name: name, answers: answers})
-            }).then(res => res.json()).then(data => {
-                document.getElementById("quiz-container").style.display = "none";
-                document.getElementById("result-page").style.display = "block";
-                document.getElementById("final-percent").innerText = data.percent + "%";
-                document.getElementById("ai-feedback").innerText = data.summary;
-            });
-        }
-    </script>
-</body>
-</html>
+    function showResult(data) {
+        document.getElementById("quiz-container").style.display = "none";
+        document.getElementById("result-page").style.display = "block";
+        document.getElementById("final-percent").innerText = data.percent + "%";
+        document.getElementById("ai-feedback").innerText = data.summary;
+    }
+</script>
