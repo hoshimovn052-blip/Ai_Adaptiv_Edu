@@ -6,64 +6,103 @@ import sqlite3
 from database import init_db, save_result
 
 app = FastAPI(title="Ai Adaptiv Edu")
-init_db() # Dastur yonganda bazani tayyorlaydi
+init_db() # Dastur yonganda bazani (va yangi savollarni) tayyorlaydi
 
-# 10 ta fan bazasi [cite: 23-29, 130-145]
-tests = {
-    "Matematika": [{"q": "15 * 4 = ?", "a": "60"}, {"q": "√81 = ?", "a": "9"}],
-    "Informatika": [{"q": "Python nima?", "a": "Dasturlash tili"}, {"q": "CPU nima?", "a": "Protsessor"}],
-    "Fizika": [{"q": "Kuch birligi?", "a": "Nyuton"}, {"q": "Vaqt birligi?", "a": "Sekund"}],
-    "Ingliz tili": [{"q": "Apple nima?", "a": "Olma"}, {"q": "Go' (o'tgan zamoni)?", "a": "Went"}],
-    "Kimyo": [{"q": "Suv formulasi?", "a": "H2O"}, {"q": "Oksigen belgisi?", "a": "O"}],
-    "Biologiya": [{"q": "DNK nima?", "a": "Genetik ma'lumot"}],
-    "Tarix": [{"q": "Amir Temur tug'ilgan yili?", "a": "1336"}],
-    "Geografiya": [{"q": "Okean nima?", "a": "Suv havzasi"}],
-    "Adabiyot": [{"q": "Navoiy kim?", "a": "Shoir"}],
-    "Huquq": [{"q": "Oliy qonun nima?", "a": "Konstitutsiya"}]
-}
+# Static fayllar (CSS uchun)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 def home():
     with open("templates/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
-@app.get("/admin", response_class=HTMLResponse)
-def admin():
-    with open("templates/admin.html", "r", encoding="utf-8") as f:
-        return f.read()
+# 1. ADAPTIV SAVOL OLISH FUNKSIYASI
+def get_question_from_db(difficulty):
+    conn = sqlite3.connect('edu_platform.db')
+    cursor = conn.cursor()
+    # Berilgan qiyinlikdagi savollarni olish
+    cursor.execute('SELECT id, subject, question_text, options, correct_answer FROM questions WHERE difficulty = ?', (difficulty,))
+    questions = cursor.fetchall()
+    conn.close()
+    
+    if questions:
+        q = random.choice(questions)
+        return {
+            "id": q[0],
+            "subject": q[1],
+            "question": q[2],
+            "options": q[3].split(", "), # Variantlarni listga aylantirish
+            "correct": q[4]
+        }
+    return None
 
 @app.get("/start")
 def start_test(name: str):
-    questions = []
-    for subject, qs in tests.items():
-        selected = random.sample(qs, 1) # Har fandan 1 tadan savol [cite: 151]
-        for q in selected:
-            questions.append({"subject": subject, "question": q["q"]})
-    random.shuffle(questions) # Aralashtirish [cite: 34, 157]
-    return {"student": name, "questions": questions}
+    # Test boshlanganda 1-darajali (oson) savol beriladi
+    first_q = get_question_from_db(1)
+    return {
+        "student": name, 
+        "question": first_q, 
+        "current_difficulty": 1,
+        "step": 1,
+        "score": 0
+    }
 
+# 2. MUKAMMAL ADAPTIV TEKSHIRISH ALGORITMI
 @app.post("/check")
-async def check_answers(request: Request):
+async def check_adaptive_answer(request: Request):
     data = await request.json()
-    name, answers = data["name"], data["answers"]
-    correct = 0
-    # Tekshirish algoritmi [cite: 50-54, 162-175]
-    for ans in answers:
-        sub = ans["subject"]
-        for q in tests[sub]:
-            if q["q"] == ans["question"] and q["a"].lower() == ans["answer"].lower():
-                correct += 1
-    
-    percent = (correct / len(answers)) * 100
-    summary = "Matematika kuchli" if percent > 70 else "Ko'proq o'qish kerak" # AI xulosasi [cite: 76, 184-187]
-    save_result(name, percent, summary) # Bazaga saqlash
-    return {"percent": percent, "summary": summary}
+    name = data["name"]
+    question_id = data["question_id"]
+    user_answer = data["answer"]
+    current_diff = data["current_difficulty"]
+    score = data["score"]
+    step = data["step"]
+
+    # Bazadan to'g'ri javobni tekshirish
+    conn = sqlite3.connect('edu_platform.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT correct_answer FROM questions WHERE id = ?', (question_id,))
+    correct_answer = cursor.fetchone()[0]
+    conn.close()
+
+    is_correct = user_answer.strip().lower() == correct_answer.strip().lower()
+
+    # ADAPTIV MANTIQ:
+    if is_correct:
+        score += 1
+        # To'g'ri bo'lsa darajani oshirish (max 3)
+        next_diff = min(current_diff + 1, 3)
+        feedback = "To'g'ri! Daraja oshirildi."
+    else:
+        # Xato bo'lsa darajani tushirish (min 1)
+        next_diff = max(current_diff - 1, 1)
+        feedback = f"Xato! To'g'ri javob: {correct_answer}. Daraja tushirildi."
+
+    # Testni 10 ta savoldan keyin tugatish
+    if step >= 10:
+        percent = (score / 10) * 100
+        summary = "A'lo! Siz barcha qiyinlik darajalarini bosib o'tdingiz." if percent > 80 else "Yaxshi, lekin ko'proq ishlash kerak."
+        save_result(name, percent, summary)
+        return {"finished": True, "percent": percent, "summary": summary}
+
+    # Keyingi adaptiv savolni olish
+    next_q = get_question_from_db(next_diff)
+
+    return {
+        "finished": False,
+        "question": next_q,
+        "next_difficulty": next_diff,
+        "score": score,
+        "step": step + 1,
+        "feedback": feedback
+    }
 
 @app.get("/get_results")
 def get_results():
     conn = sqlite3.connect('edu_platform.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT student_name, total_percent, summary FROM results')
+    cursor.execute('SELECT student_name, total_percent, summary FROM results ORDER BY timestamp DESC')
     rows = cursor.fetchall()
     conn.close()
     return rows
