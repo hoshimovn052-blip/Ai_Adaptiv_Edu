@@ -1,0 +1,25 @@
+/* Asosiy dizayn sozlamalari */
+body {
+    background-color: #f8f9fc;
+    font-family: 'Inter', sans-serif;
+}
+
+.card-custom {
+    border-radius: 20px;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.option-label {
+    display: block;
+    padding: 12px;
+    border: 2px solid #e3e6f0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-bottom: 10px;
+}
+
+.option-label:hover {
+    background-color: #f8f9fc;
+    border-color: #4e73df;
+}
