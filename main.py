@@ -12,7 +12,7 @@ init_db() # Dastur yonganda bazani tayyorlaydi
 # Xavfsizlik obyekti
 security = HTTPBasic()
 
-# O'QTUVCHI LOGIN VA PAROLI (Buni istasangiz o'zgartiring)
+# O'QTUVCHI LOGIN VA PAROLI
 ADMIN_USERNAME = "teacher"
 ADMIN_PASSWORD = "admin777"
 
@@ -26,7 +26,7 @@ def authenticate_teacher(credentials: HTTPBasicCredentials = Depends(security)):
         )
     return credentials.username
 
-# Static fayllar
+# Static fayllar (CSS/JS uchun)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- FOYDALANUVCHI QISMI (Frontend) ---
@@ -87,14 +87,20 @@ async def check_adaptive_answer(request: Request):
     if is_correct:
         score += 1
         next_diff = min(current_diff + 1, 3)
-        feedback = "To'g'ri!"
+        feedback_text = "To'g'ri!"
     else:
         next_diff = max(current_diff - 1, 1)
-        feedback = f"Xato! Javob: {correct_answer}"
+        feedback_text = f"Xato! Javob: {correct_answer}"
 
+    # Test yakunlanishi
     if step >= 10:
         percent = (score / 10) * 100
-        summary = "A'lo!" if percent > 80 else "Yaxshi."
+        # AI Xulosasini aniqlash
+        if percent >= 90: summary = "A'lo! Mavzuni mukammal o'zlashtirgansiz."
+        elif percent >= 70: summary = "Yaxshi. Bilimlaringizni mustahkamlang."
+        elif percent >= 50: summary = "Qoniqarli. Ko'proq mehnat qilish kerak."
+        else: summary = "Past natija. Mavzuni boshidan o'qing."
+        
         save_result(name, percent, summary)
         return {"finished": True, "percent": percent, "summary": summary}
 
@@ -105,14 +111,13 @@ async def check_adaptive_answer(request: Request):
         "next_difficulty": next_diff,
         "score": score,
         "step": step + 1,
-        "feedback": feedback
+        "feedback": feedback_text
     }
 
 # --- ADMIN PANEL QISMI (HIMOYA QILINGAN) ---
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(username: str = Depends(authenticate_teacher)):
-    """Faqat login qilgan o'qituvchi kira oladi"""
     try:
         with open("templates/admin.html", "r", encoding="utf-8") as f:
             return f.read()
@@ -121,9 +126,9 @@ def admin_page(username: str = Depends(authenticate_teacher)):
 
 @app.get("/api/results")
 def get_results_api(username: str = Depends(authenticate_teacher)):
-    """Ma'lumotlar ham login orqali himoyalangan"""
     conn = sqlite3.connect('edu_platform.db')
     cursor = conn.cursor()
+    # Bazadagi student_name, total_percent, summary (xulosa), timestamp ni olamiz
     cursor.execute('SELECT student_name, total_percent, summary, timestamp FROM results ORDER BY timestamp DESC')
     rows = cursor.fetchall()
     conn.close()
@@ -133,7 +138,7 @@ def get_results_api(username: str = Depends(authenticate_teacher)):
         results.append({
             "name": row[0],
             "percent": row[1],
-            "feedback": row[2],
+            "feedback": row[2], # Bu yerda row[2] - bu bazadagi 'summary' ustuni
             "date": row[3]
         })
     return results
