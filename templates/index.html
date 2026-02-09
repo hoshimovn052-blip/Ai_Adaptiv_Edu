@@ -3,30 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ai Adaptiv Edu - Kelajak Ta'limi</title>
+    <title>Ai Adaptiv Edu - Multimedia & AI Platforma</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        :root { --primary-color: #4e73df; --secondary-color: #1cc88a; }
-        body { background-color: #f8f9fc; font-family: 'Inter', sans-serif; }
-        .hero-section { background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%); color: white; padding: 60px 0; border-radius: 0 0 50px 50px; }
-        .card-custom { border: none; border-radius: 20px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); transition: 0.3s; }
-        .progress { height: 10px; border-radius: 5px; margin-bottom: 20px; }
-        .option-label { display: block; padding: 12px; border: 2px solid #e3e6f0; border-radius: 10px; cursor: pointer; transition: 0.2s; margin-bottom: 10px; }
-        .option-label:hover { background-color: #f8f9fc; border-color: var(--primary-color); }
-        input[type="radio"]:checked + .option-label { background-color: #4e73df; color: white; border-color: #4e73df; }
+        :root { --primary: #4e73df; --secondary: #1cc88a; --dark: #2c3e50; }
+        body { background-color: #f8f9fc; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        
+        /* Hero Section */
+        .hero-section { 
+            background: linear-gradient(135deg, var(--primary) 0%, #224abe 100%); 
+            color: white; padding: 80px 0; border-radius: 0 0 50px 50px; 
+            box-shadow: 0 10px 30px rgba(78, 115, 223, 0.2);
+        }
+
+        /* Card Styles */
+        .card-custom { border: none; border-radius: 20px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.12); transition: 0.3s; }
+        .subject-card { cursor: pointer; height: 100%; border-radius: 20px; border: 2px solid transparent; }
+        .subject-card:hover { transform: translateY(-10px); border-color: var(--primary); }
+        .icon-box { font-size: 3rem; margin-bottom: 15px; color: var(--primary); }
+
+        /* Quiz Elements */
+        .option-label { display: block; padding: 15px; border: 2px solid #eaecf4; border-radius: 12px; cursor: pointer; transition: 0.2s; margin-bottom: 12px; font-weight: 500; }
+        .option-label:hover { background-color: #f8f9fc; border-color: var(--primary); }
+        input[type="radio"]:checked + .option-label { background-color: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 15px rgba(78, 115, 223, 0.3); }
         input[type="radio"] { display: none; }
+
+        /* Video & Media */
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 15px; margin-bottom: 20px; background: #000; }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        
+        .progress { height: 12px; border-radius: 10px; background-color: #eaecf4; }
+        .news-item { border-left: 4px solid var(--secondary); background: #f8f9fc; padding: 15px; border-radius: 0 10px 10px 0; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="landing-page" class="hero-section text-center animate__animated animate__fadeIn">
-        <div class="container">
-            <h1 class="display-4 fw-bold">Ai Adaptiv Edu</h1>
-            <p class="lead">Sun'iy intellekt asosida kasbiy ta'limni individuallashtirish platformasi</p>
-            <div class="mt-5 mx-auto" style="max-width: 400px;">
-                <input type="text" id="student-name" class="form-control form-control-lg mb-3 shadow" placeholder="Ismingizni kiriting...">
-                <button class="btn btn-light px-5 py-3 fw-bold text-primary shadow" onclick="initiateTest()">Testni Boshlash</button>
+    <div id="landing-page" class="hero-section text-center">
+        <div class="container animate__animated animate__fadeInDown">
+            <h1 class="display-3 fw-bold mb-3">Ai Adaptiv Edu</h1>
+            <p class="lead mb-5">Sun'iy intellekt asosida kasbiy ta'limni individuallashtirish platformasi</p>
+            <div class="mt-5 mx-auto" style="max-width: 450px;">
+                <div class="card card-custom p-4">
+                    <input type="text" id="student-name" class="form-control form-control-lg mb-3 text-center shadow-sm" placeholder="Ismingizni kiriting...">
+                    <button class="btn btn-primary btn-lg w-100 fw-bold shadow" onclick="showCatalog()">Platformaga Kirish <i class="fas fa-arrow-right ms-2"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="catalog-section" class="container my-5" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeIn">
+            <h2 class="fw-bold text-dark"><i class="fas fa-th-large me-2"></i>Fanlar Katalogi</h2>
+            <button class="btn btn-outline-primary fw-bold" onclick="startTest('Umumiy')"><i class="fas fa-brain me-2"></i>Umumiy AI Imtihon</button>
+        </div>
+        <div class="row g-4" id="subjects-list">
+            </div>
+    </div>
+
+    <div class="modal fade" id="subjectModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content card-custom overflow-hidden">
+                <div class="modal-header border-0 bg-primary text-white p-4">
+                    <h4 class="modal-title fw-bold" id="modalSubjectTitle">Fan nomi</h4>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <div class="col-md-7 border-end">
+                            <h5 class="fw-bold mb-3"><i class="fas fa-play-circle text-danger me-2"></i>Video Darslar</h5>
+                            <div id="video-content"></div>
+                        </div>
+                        <div class="col-md-5">
+                            <h5 class="fw-bold mb-3"><i class="fas fa-lightbulb text-warning me-2"></i>Ma'lumotlar & Yangiliklar</h5>
+                            <div id="news-content"></div>
+                            <div class="mt-4 p-4 bg-light rounded-4 text-center border">
+                                <p class="text-muted mb-3">Ushbu fan bo'yicha bilimingizni AI orqali sinab ko'ring:</p>
+                                <button class="btn btn-success btn-lg w-100 fw-bold shadow-sm" onclick="startSubjectTest()">
+                                    <i class="fas fa-vial me-2"></i>Testni Boshlash
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -34,114 +95,166 @@
     <div class="container my-5" id="quiz-container" style="display: none;">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div class="card card-custom p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 id="subject-title" class="text-primary">Fan nomi</h4>
-                        <div class="badge bg-primary p-2" id="step-display">Savol: 1/10</div>
+                <div class="card card-custom p-4 p-md-5 animate__animated animate__fadeInUp">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 id="quiz-header" class="text-primary fw-bold m-0">Informatika</h4>
+                        <span class="badge bg-primary rounded-pill px-3 py-2" id="step-display">Savol: 1/10</span>
                     </div>
-                    <div class="progress">
-                        <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                    <div class="progress mb-4">
+                        <div id="progress-bar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 10%"></div>
                     </div>
                     
-                    <div id="question-box" class="animate__animated animate__fadeIn">
+                    <div id="question-box">
                         </div>
 
-                    <div class="mt-4 text-end">
-                        <button class="btn btn-primary btn-lg px-5" onclick="nextQuestion()" id="next-btn">Keyingisi</button>
+                    <div class="mt-5 text-end">
+                        <button class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill shadow" onclick="submitAnswer()" id="next-btn">
+                            Keyingisi <i class="fas fa-chevron-right ms-2"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="container my-5" id="result-page" style="display: none;">
-        <div class="text-center card card-custom p-5 animate__animated animate__zoomIn">
-            <h2 class="text-success mb-4">Tabriklaymiz!</h2>
-            <div class="display-1 fw-bold text-primary mb-3" id="final-percent">0%</div>
-            <p class="lead" id="ai-feedback"></p>
-            <hr>
-            <button class="btn btn-primary mt-4 px-5 py-2" onclick="location.reload()">Bosh sahifaga qaytish</button>
-            <a href="/admin" class="btn btn-outline-secondary mt-4 ms-2">Natijalar tahlili (Admin)</a>
+    <div id="result-page" class="container my-5" style="display: none;">
+        <div class="row justify-content-center text-center">
+            <div class="col-md-7">
+                <div class="card card-custom p-5 animate__animated animate__zoomIn">
+                    <div class="mb-4 text-success"><i class="fas fa-award fa-5x"></i></div>
+                    <h2 class="fw-bold mb-2">Test Yakunlandi!</h2>
+                    <div class="display-1 fw-bold text-primary my-4" id="final-percent">0%</div>
+                    <p class="lead text-dark px-3" id="ai-feedback"></p>
+                    <div class="mt-5">
+                        <button class="btn btn-primary btn-lg px-5 rounded-pill" onclick="location.reload()">Bosh Sahifaga Qaytish</button>
+                        <a href="/admin" class="btn btn-link mt-3 d-block text-decoration-none text-muted">Admin Panelga kirish</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let name = "", currentDifficulty = 1, score = 0, step = 1, currentQuestionId = null;
+        let userName = "", currentSubject = "", quizData = null;
 
-        function initiateTest() {
-            name = document.getElementById("student-name").value;
-            if(!name) return alert("Iltimos, ismingizni yozing!");
+        function showCatalog() {
+            userName = document.getElementById("student-name").value;
+            if(!userName) return alert("Ismingizni kiriting!");
             
-            fetch(`/start?name=${name}`)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById("landing-page").style.display = "none";
-                    document.getElementById("quiz-container").style.display = "block";
-                    currentDifficulty = data.current_difficulty;
-                    step = data.step;
-                    score = data.score;
-                    displayQuestion(data.question);
-                });
+            document.getElementById("landing-page").classList.add('animate__animated', 'animate__fadeOutUp');
+            setTimeout(() => {
+                document.getElementById("landing-page").style.display = "none";
+                document.getElementById("catalog-section").style.display = "block";
+                loadSubjects();
+            }, 500);
         }
 
-        function displayQuestion(q) {
-            if(!q) return;
-            currentQuestionId = q.id;
-            document.getElementById("subject-title").innerText = `${q.subject} (Qiyinlik: ${currentDifficulty})`;
-            document.getElementById("step-display").innerText = `Savol: ${step}/10`;
-            
-            let optionsHtml = q.options.map(opt => `
-                <div class="option-item">
-                    <input type="radio" name="quiz-option" id="opt-${opt}" value="${opt}">
-                    <label class="option-label" for="opt-${opt}">${opt}</label>
-                </div>
-            `).join('');
-
-            document.getElementById("question-box").innerHTML = `
-                <h3 class="mb-4 text-dark">${q.question}</h3>
-                <div id="options-container">${optionsHtml}</div>
-            `;
-            
-            document.getElementById("progress-bar").style.width = (step * 10) + "%";
-            document.getElementById("next-btn").innerText = step === 10 ? "Tugatish" : "Keyingisi";
-        }
-
-        function nextQuestion() {
-            const selected = document.querySelector('input[name="quiz-option"]:checked');
-            if(!selected) return alert("Iltimos, javobni tanlang!");
-
-            const answerData = {
-                name: name,
-                question_id: currentQuestionId,
-                answer: selected.value,
-                current_difficulty: currentDifficulty,
-                score: score,
-                step: step
-            };
-
-            fetch("/check", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(answerData)
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.finished) {
-                    showResult(data);
-                } else {
-                    currentDifficulty = data.next_difficulty;
-                    score = data.score;
-                    step = data.step;
-                    displayQuestion(data.question);
-                }
+        function loadSubjects() {
+            fetch('/api/subjects').then(res => res.json()).then(subjects => {
+                const list = document.getElementById('subjects-list');
+                const icons = {"Matematika":"fa-square-root-variable","Fizika":"fa-bolt","Informatika":"fa-code","Biologiya":"fa-leaf","Kimyo":"fa-flask","Ingliz tili":"fa-language"};
+                
+                list.innerHTML = subjects.map((s, idx) => `
+                    <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: ${idx * 0.1}s">
+                        <div class="card card-custom subject-card p-4 text-center" onclick="openSubject('${s}')">
+                            <div class="icon-box"><i class="fas ${icons[s] || 'fa-book'}"></i></div>
+                            <h5 class="fw-bold mb-2">${s}</h5>
+                            <p class="small text-muted mb-0 text-uppercase ls-1">Multimedia va Test</p>
+                        </div>
+                    </div>
+                `).join('');
             });
         }
 
-        function showResult(data) {
-            document.getElementById("quiz-container").style.display = "none";
-            document.getElementById("result-page").style.display = "block";
-            document.getElementById("final-percent").innerText = data.percent + "%";
-            document.getElementById("ai-feedback").innerText = data.summary;
+        function openSubject(s) {
+            currentSubject = s;
+            document.getElementById('modalSubjectTitle').innerText = s;
+            
+            fetch(`/api/content/${s}`).then(res => res.json()).then(data => {
+                const videos = data.filter(c => c.type === 'video');
+                const news = data.filter(c => c.type === 'news');
+
+                document.getElementById('video-content').innerHTML = videos.map(v => `
+                    <div class="video-container shadow"><iframe src="${v.data}" allowfullscreen></iframe></div>
+                    <p class="fw-bold mb-4">${v.title}</p>
+                `).join('') || "<p class='text-muted'>Hozircha videolar yo'q.</p>";
+
+                document.getElementById('news-content').innerHTML = news.map(n => `
+                    <div class="news-item shadow-sm">
+                        <h6 class="fw-bold mb-1">${n.title}</h6>
+                        <p class="small text-muted mb-0">${n.data}</p>
+                    </div>
+                `).join('') || "<p class='text-muted text-center py-4'>Yangiliklar topilmadi.</p>";
+                
+                new bootstrap.Modal(document.getElementById('subjectModal')).show();
+            });
+        }
+
+        function startSubjectTest() {
+            bootstrap.Modal.getInstance(document.getElementById('subjectModal')).hide();
+            startTest(currentSubject);
+        }
+
+        function startTest(subject) {
+            fetch(`/start?name=${userName}&subject=${subject}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.error) return alert(data.error);
+                quizData = data;
+                document.getElementById("catalog-section").style.display = "none";
+                document.getElementById("quiz-container").style.display = "block";
+                displayQuestion();
+            });
+        }
+
+        function displayQuestion() {
+            const q = quizData.question;
+            document.getElementById("quiz-header").innerText = `${quizData.subject} Testi`;
+            document.getElementById("step-display").innerText = `Savol: ${quizData.step}/10`;
+            document.getElementById("progress-bar").style.width = (quizData.step * 10) + "%";
+            
+            document.getElementById("question-box").innerHTML = `
+                <h3 class="mb-4 text-dark fw-bold">${q.question}</h3>
+                <div class="options-list">
+                    ${q.options.map(opt => `
+                        <input type="radio" name="ans" id="opt-${opt}" value="${opt}">
+                        <label class="option-label" for="opt-${opt}">${opt}</label>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function submitAnswer() {
+            const selected = document.querySelector('input[name="ans"]:checked');
+            if(!selected) return alert("Iltimos, javobni tanlang!");
+
+            fetch('/check', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: userName,
+                    question_id: quizData.question.id,
+                    answer: selected.value,
+                    current_difficulty: quizData.current_difficulty,
+                    score: quizData.score,
+                    step: quizData.step,
+                    subject: quizData.subject
+                })
+            }).then(res => res.json()).then(data => {
+                if(data.finished) {
+                    document.getElementById("quiz-container").style.display = "none";
+                    document.getElementById("result-page").style.display = "block";
+                    document.getElementById("final-percent").innerText = data.percent + "%";
+                    document.getElementById("ai-feedback").innerText = data.summary;
+                } else {
+                    quizData.question = data.question;
+                    quizData.current_difficulty = data.next_difficulty;
+                    quizData.score = data.score;
+                    quizData.step = data.step;
+                    displayQuestion();
+                }
+            });
         }
     </script>
 </body>

@@ -4,18 +4,19 @@ def init_db():
     conn = sqlite3.connect('edu_platform.db')
     cursor = conn.cursor()
     
-    # 1. Natijalar jadvali
+    # 1. Natijalar jadvali (Subject ustuni qo'shildi)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_name TEXT,
             total_percent REAL,
             summary TEXT,
+            subject TEXT DEFAULT 'Umumiy',
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
-    # 2. Savollar jadvali (Adaptive qiyinlik darajasi bilan)
+    # 2. Savollar jadvali
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS questions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,40 +27,57 @@ def init_db():
             difficulty INTEGER
         )
     ''')
+
+    # 3. Fanlar uchun kontent jadvali (Video va Yangiliklar)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS content (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject TEXT NOT NULL,
+            content_type TEXT NOT NULL, -- 'video' yoki 'news'
+            title TEXT NOT NULL,
+            data TEXT NOT NULL -- URL yoki matn
+        )
+    ''')
     
-    # Bazada savollar bor-yo'qligini tekshirish
+    # Bazada savollar bor-yo'qligini tekshirish va namunaviy ma'lumotlar qo'shish
     cursor.execute('SELECT COUNT(*) FROM questions')
     if cursor.fetchone()[0] == 0:
-        # Savollar ro'yxati
         questions = [
             ("Matematika", "15 ning kvadrati nechaga teng?", "225", "200, 225, 250, 125", 1),
             ("Matematika", "Agar x + 15 = 40 bo'lsa, x ni toping.", "25", "20, 25, 30, 35", 2),
-            ("Matematika", "Uchburchakning yuzini topish formulasi qaysi?", "S = (a*h)/2", "S = a*b, S = (a*h)/2, S = 2*a*b, S = a+b", 3),
             ("Informatika", "Kompyuterning asosiy xotirasi nima deb ataladi?", "RAM", "CPU, RAM, HDD, SSD", 1),
-            ("Informatika", "Python tilida ekranga chiqarish buyrug'i qaysi?", "print()", "output(), log(), write(), print()", 1),
             ("Informatika", "Sun'iy intellektning asosiy yo'nalishi nima?", "Machine Learning", "Hardware, Machine Learning, Networking, Office", 3),
             ("Fizika", "Tezlikning o'lchov birligi nima?", "m/s", "kg, m/s, J, N", 1),
-            ("Fizika", "Nyutonning ikkinchi qonuni formulasi?", "F = m*a", "F = m*v, F = m*a, E = mc^2, P = F/S", 2),
-            ("Fizika", "Yorug'lik tezligi taxminan qancha?", "300,000 km/s", "100,000 km/s, 300,000 km/s, 500,000 km/s, 1 mln km/s", 3),
             ("Ingliz tili", "I ___ a student.", "am", "is, are, am, be", 1),
-            ("Ingliz tili", "Choose the past simple of 'GO'.", "went", "gone, goes, went, going", 2),
-            ("Ingliz tili", "Identify the synonym for 'INTELLIGENT'.", "smart", "slow, smart, happy, brave", 3),
-            ("Kimyo", "Suvning kimyoviy formulasi?", "H2O", "CO2, H2O, O2, NaCl", 1),
-            ("Kimyo", "Osh tuzining kimyoviy nomi?", "NaCl", "NaOH, NaCl, HCl, KCl", 2),
-            ("Kimyo", "Mendeleyev davriy jadvalida birinchi element?", "Vodorod", "Kislorod, Oltin, Vodorod, Geliy", 1)
+            ("Kimyo", "Suvning kimyoviy formulasi?", "H2O", "CO2, H2O, O2, NaCl", 1)
         ]
         cursor.executemany('''
             INSERT INTO questions (subject, question_text, correct_answer, options, difficulty)
             VALUES (?, ?, ?, ?, ?)
         ''', questions)
+
+    # Namunaviy kontentlar (Video va Yangiliklar) qo'shish
+    cursor.execute('SELECT COUNT(*) FROM content')
+    if cursor.fetchone()[0] == 0:
+        sample_content = [
+            ("Informatika", "video", "Sun'iy intellekt asoslari", "https://www.youtube.com/embed/2ePf9rue1Ao"),
+            ("Matematika", "news", "Matematika olamidagi yangilik", "Yaqinda yangi eng katta tub son topildi."),
+            ("Fizika", "video", "Nyuton qonunlari", "https://www.youtube.com/embed/kKKM8Y-u7ds")
+        ]
+        cursor.executemany('INSERT INTO content (subject, content_type, title, data) VALUES (?, ?, ?, ?)', sample_content)
     
     conn.commit()
     conn.close()
 
-def save_result(name, percent, summary):
+def save_result(name, percent, summary, subject="Umumiy"):
     conn = sqlite3.connect('edu_platform.db')
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO results (student_name, total_percent, summary) VALUES (?, ?, ?)', 
-                   (name, percent, summary))
+    cursor.execute('INSERT INTO results (student_name, total_percent, summary, subject) VALUES (?, ?, ?, ?)', 
+                   (name, percent, summary, subject))
     conn.commit()
     conn.close()
+
+# Dastur ishga tushganda bazani tayyorlash
+if __name__ == "__main__":
+    init_db()
+    print("Baza muvaffaqiyatli yangilandi va birlashtirildi!")
