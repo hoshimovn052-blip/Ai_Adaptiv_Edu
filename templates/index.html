@@ -12,31 +12,30 @@
         :root { --primary: #4e73df; --secondary: #1cc88a; --dark: #2c3e50; }
         body { background-color: #f8f9fc; font-family: 'Inter', sans-serif; overflow-x: hidden; }
         
-        /* Hero Section */
         .hero-section { 
             background: linear-gradient(135deg, var(--primary) 0%, #224abe 100%); 
             color: white; padding: 80px 0; border-radius: 0 0 50px 50px; 
             box-shadow: 0 10px 30px rgba(78, 115, 223, 0.2);
         }
 
-        /* Card Styles */
         .card-custom { border: none; border-radius: 20px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.12); transition: 0.3s; }
         .subject-card { cursor: pointer; height: 100%; border-radius: 20px; border: 2px solid transparent; }
         .subject-card:hover { transform: translateY(-10px); border-color: var(--primary); }
         .icon-box { font-size: 3rem; margin-bottom: 15px; color: var(--primary); }
 
-        /* Quiz Elements */
         .option-label { display: block; padding: 15px; border: 2px solid #eaecf4; border-radius: 12px; cursor: pointer; transition: 0.2s; margin-bottom: 12px; font-weight: 500; }
         .option-label:hover { background-color: #f8f9fc; border-color: var(--primary); }
         input[type="radio"]:checked + .option-label { background-color: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 15px rgba(78, 115, 223, 0.3); }
         input[type="radio"] { display: none; }
 
-        /* Video & Media */
         .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 15px; margin-bottom: 20px; background: #000; }
         .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
         
         .progress { height: 12px; border-radius: 10px; background-color: #eaecf4; }
         .news-item { border-left: 4px solid var(--secondary); background: #f8f9fc; padding: 15px; border-radius: 0 10px 10px 0; margin-bottom: 10px; }
+        
+        /* Daraja belgisi uchun maxsus stil */
+        .diff-badge { font-size: 0.75rem; letter-spacing: 1px; padding: 5px 12px; border-radius: 50px; }
     </style>
 </head>
 <body>
@@ -59,8 +58,7 @@
             <h2 class="fw-bold text-dark"><i class="fas fa-th-large me-2"></i>Fanlar Katalogi</h2>
             <button class="btn btn-outline-primary fw-bold" onclick="startTest('Umumiy')"><i class="fas fa-brain me-2"></i>Umumiy AI Imtihon</button>
         </div>
-        <div class="row g-4" id="subjects-list">
-            </div>
+        <div class="row g-4" id="subjects-list"></div>
     </div>
 
     <div class="modal fade" id="subjectModal" tabindex="-1" aria-hidden="true">
@@ -96,16 +94,17 @@
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card card-custom p-4 p-md-5 animate__animated animate__fadeInUp">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 id="quiz-header" class="text-primary fw-bold m-0">Informatika</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h4 id="quiz-header" class="text-primary fw-bold m-0">Fan nomi</h4>
                         <span class="badge bg-primary rounded-pill px-3 py-2" id="step-display">Savol: 1/10</span>
                     </div>
+                    <div id="difficulty-box" class="mb-3 text-start"></div>
+
                     <div class="progress mb-4">
                         <div id="progress-bar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 10%"></div>
                     </div>
                     
-                    <div id="question-box">
-                        </div>
+                    <div id="question-box"></div>
 
                     <div class="mt-5 text-end">
                         <button class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill shadow" onclick="submitAnswer()" id="next-btn">
@@ -124,10 +123,10 @@
                     <div class="mb-4 text-success"><i class="fas fa-award fa-5x"></i></div>
                     <h2 class="fw-bold mb-2">Test Yakunlandi!</h2>
                     <div class="display-1 fw-bold text-primary my-4" id="final-percent">0%</div>
+                    <div id="time-display" class="mb-3 badge bg-light text-dark border p-2"></div>
                     <p class="lead text-dark px-3" id="ai-feedback"></p>
                     <div class="mt-5">
                         <button class="btn btn-primary btn-lg px-5 rounded-pill" onclick="location.reload()">Bosh Sahifaga Qaytish</button>
-                        <a href="/admin" class="btn btn-link mt-3 d-block text-decoration-none text-muted">Admin Panelga kirish</a>
                     </div>
                 </div>
             </div>
@@ -141,7 +140,6 @@
         function showCatalog() {
             userName = document.getElementById("student-name").value;
             if(!userName) return alert("Ismingizni kiriting!");
-            
             document.getElementById("landing-page").classList.add('animate__animated', 'animate__fadeOutUp');
             setTimeout(() => {
                 document.getElementById("landing-page").style.display = "none";
@@ -153,14 +151,21 @@
         function loadSubjects() {
             fetch('/api/subjects').then(res => res.json()).then(subjects => {
                 const list = document.getElementById('subjects-list');
-                const icons = {"Matematika":"fa-square-root-variable","Fizika":"fa-bolt","Informatika":"fa-code","Biologiya":"fa-leaf","Kimyo":"fa-flask","Ingliz tili":"fa-language"};
-                
+                const icons = {
+                    "Matematika":"fa-square-root-variable",
+                    "Fizika":"fa-bolt",
+                    "Informatika":"fa-code",
+                    "Biologiya":"fa-leaf",
+                    "Kimyo":"fa-flask",
+                    "Ingliz tili":"fa-language",
+                    "Geografiya":"fa-earth-americas"
+                };
                 list.innerHTML = subjects.map((s, idx) => `
                     <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: ${idx * 0.1}s">
                         <div class="card card-custom subject-card p-4 text-center" onclick="openSubject('${s}')">
                             <div class="icon-box"><i class="fas ${icons[s] || 'fa-book'}"></i></div>
                             <h5 class="fw-bold mb-2">${s}</h5>
-                            <p class="small text-muted mb-0 text-uppercase ls-1">Multimedia va Test</p>
+                            <p class="small text-muted mb-0 text-uppercase">Multimedia va Test</p>
                         </div>
                     </div>
                 `).join('');
@@ -170,23 +175,19 @@
         function openSubject(s) {
             currentSubject = s;
             document.getElementById('modalSubjectTitle').innerText = s;
-            
             fetch(`/api/content/${s}`).then(res => res.json()).then(data => {
                 const videos = data.filter(c => c.type === 'video');
                 const news = data.filter(c => c.type === 'news');
-
                 document.getElementById('video-content').innerHTML = videos.map(v => `
                     <div class="video-container shadow"><iframe src="${v.data}" allowfullscreen></iframe></div>
                     <p class="fw-bold mb-4">${v.title}</p>
-                `).join('') || "<p class='text-muted'>Hozircha videolar yo'q.</p>";
-
+                `).join('') || "<p class='text-muted text-center'>Video darslar yuklanmoqda...</p>";
                 document.getElementById('news-content').innerHTML = news.map(n => `
                     <div class="news-item shadow-sm">
                         <h6 class="fw-bold mb-1">${n.title}</h6>
                         <p class="small text-muted mb-0">${n.data}</p>
                     </div>
-                `).join('') || "<p class='text-muted text-center py-4'>Yangiliklar topilmadi.</p>";
-                
+                `).join('') || "<p class='text-muted text-center'>Yangiliklar topilmadi.</p>";
                 new bootstrap.Modal(document.getElementById('subjectModal')).show();
             });
         }
@@ -214,6 +215,13 @@
             document.getElementById("step-display").innerText = `Savol: ${quizData.step}/10`;
             document.getElementById("progress-bar").style.width = (quizData.step * 10) + "%";
             
+            // Qiyinlik darajasi rangini aniqlash
+            const diffClass = q.difficulty_num === 3 ? 'bg-danger' : (q.difficulty_num === 2 ? 'bg-warning text-dark' : 'bg-success');
+            document.getElementById("difficulty-box").innerHTML = `
+                <span class="badge ${diffClass} diff-badge text-uppercase">
+                    <i class="fas fa-layer-group me-1"></i> Daraja: ${q.difficulty_name}
+                </span>`;
+
             document.getElementById("question-box").innerHTML = `
                 <h3 class="mb-4 text-dark fw-bold">${q.question}</h3>
                 <div class="options-list">
@@ -239,13 +247,15 @@
                     current_difficulty: quizData.current_difficulty,
                     score: quizData.score,
                     step: quizData.step,
-                    subject: quizData.subject
+                    subject: quizData.subject,
+                    start_time: quizData.start_time
                 })
             }).then(res => res.json()).then(data => {
                 if(data.finished) {
                     document.getElementById("quiz-container").style.display = "none";
                     document.getElementById("result-page").style.display = "block";
                     document.getElementById("final-percent").innerText = data.percent + "%";
+                    document.getElementById("time-display").innerText = `Sarflangan vaqt: ${data.time} daqiqa`;
                     document.getElementById("ai-feedback").innerText = data.summary;
                 } else {
                     quizData.question = data.question;
