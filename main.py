@@ -27,7 +27,7 @@ def authenticate_teacher(credentials: HTTPBasicCredentials = Depends(security)):
         )
     return credentials.username
 
-# Static fayllar (CSS, JS, Images)
+# Static fayllar
 if not os.path.exists("static"):
     os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -39,16 +39,14 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-# --- API: FANLAR VA KONTENTLAR ---
+# --- API YO'NALISHLARI ---
 
 @app.get("/api/subjects")
 def get_subjects():
-    # BMI uchun barcha asosiy fanlar
     return ["Matematika", "Fizika", "Informatika", "Biologiya", "Geografiya", "Ingliz tili", "Kimyo"]
 
 @app.get("/api/get_content/{subject}/{c_type}")
 def get_filtered_content(subject: str, c_type: str):
-    """Faqat tanlangan fan va kontent turiga (reels yoki lesson) mos videolarni qaytaradi"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT title, data FROM content WHERE subject = ? AND content_type = ?', (subject, c_type))
@@ -61,7 +59,6 @@ def get_filtered_content(subject: str, c_type: str):
 def get_question(difficulty, subject=None):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
     if subject and subject != "Umumiy":
         cursor.execute('SELECT * FROM questions WHERE difficulty = ? AND subject = ?', (difficulty, subject))
     else:
@@ -83,7 +80,7 @@ def get_question(difficulty, subject=None):
         }
     return None
 
-# --- YO'NALISHLAR (ROUTING) ---
+# --- SAHIFALAR ---
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
@@ -93,12 +90,21 @@ async def home():
     except FileNotFoundError:
         return "Xatolik: templates/index.html topilmadi!"
 
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(username: str = Depends(authenticate_teacher)):
+    try:
+        with open("templates/admin.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "Xatolik: templates/admin.html topilmadi!"
+
+# --- TEST JARAYONI ---
+
 @app.get("/start")
 async def start_test(name: str, subject: str = "Umumiy"):
-    # Individuallashtirilgan ta'limni diagnostika bilan boshlash (Oson darajadan)
     first_q = get_question(1, subject)
     if not first_q:
-        return {"error": f"{subject} fani bo'yicha savollar hali kiritilmagan!"}
+        return JSONResponse(status_code=404, content={"error": f"{subject} fani bo'yicha savollar topilmadi!"})
         
     return {
         "student": name,
@@ -128,46 +134,45 @@ async def check_answer(request: Request, background_tasks: BackgroundTasks):
     row = cursor.fetchone()
     conn.close()
 
-    if not row:
-        return {"error": "Savol topilmadi"}
+    if not row: return {"error": "Savol topilmadi"}
 
     is_correct = user_ans.strip().lower() == row["correct_answer"].strip().lower()
-    
     new_score = score + 1 if is_correct else score
-    # Adaptivlik: To'g'ri bo'lsa daraja ko'tariladi, xato bo'lsa tushadi
     next_diff = min(curr_diff + 1, 3) if is_correct else max(curr_diff - 1, 1)
 
     if step >= 10:
-        end_time = time.time()
-        spent_time = round((end_time - start_time) / 60, 1)
+        spent_time = round((time.time() - start_time) / 60, 1)
         percent = (new_score / 10) * 100
         
-        # BMI: Individuallashtirilgan AI xulosasi
-        if percent >= 90:
-            summary = f"A'lo! {spent_time} daqiqada {subject}ni {percent}% ga yopdingiz. Darajangiz: Ekspert."
-        elif percent >= 70:
-            summary = f"Yaxshi! {spent_time} daqiqada {percent}%. Bilimingiz barqaror, relislarni ko'rishni davom ettiring."
-        else:
-            summary = f"Diqqat! Natija {percent}%. Sizga {subject} bo'yicha video darslarni qayta ko'rish tavsiya etiladi."
+        if percent >= 90: summary = f"A'lo! {spent_time} daqiqada {percent}%. Darajangiz: Ekspert."
+        elif percent >= 70: summary = f"Yaxshi! {spent_time} daqiqada {percent}%. Bilimingiz barqaror."
+        else: summary = f"Natija {percent}%. Video darslarni qayta ko'rish tavsiya etiladi."
 
         background_tasks.add_task(save_result, name, percent, summary, subject)
         return {"finished": True, "percent": percent, "summary": summary, "time": spent_time}
 
     next_q = get_question(next_diff, subject)
-    return {
-        "finished": False, "question": next_q, "next_difficulty": next_diff,
-        "score": new_score, "step": step + 1, "is_correct": is_correct
-    }
+    return {"finished": False, "question": next_q, "next_difficulty": next_diff, "score": new_score, "step": step + 1, "is_correct": is_correct}
 
-# --- ADMIN API: KONTENT BOSHQARUVI ---
+# --- ADMIN API: NATIJALAR VA KONTENT ---
 
-@app.get("/admin", response_class=HTMLResponse)
-def admin_page(username: str = Depends(authenticate_teacher)):
-    try:
-        with open("templates/admin.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return "Xatolik: templates/admin.html topilmadi!"
+@app.get("/api/results")
+def get_results_api(username: str = Depends(authenticate_teacher)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # SQL so'rovda student_name va total_percent kabi bazadagi aniq nomlarni ishlatamiz
+    cursor.execute('SELECT student_name, total_percent, summary, subject, timestamp FROM results ORDER BY timestamp DESC')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Frontend (admin.html) JS kutayotgan kalit so'zlarga (name, percent, feedback) o'tkazamiz
+    return [{
+        "name": r["student_name"],
+        "percent": r["total_percent"], # JS buni r.percent deb qidiradi
+        "feedback": r["summary"],
+        "subject": r["subject"],
+        "date": r["timestamp"]
+    } for r in rows]
 
 @app.post("/api/add_content")
 async def add_content(request: Request, username: str = Depends(authenticate_teacher)):
@@ -175,29 +180,11 @@ async def add_content(request: Request, username: str = Depends(authenticate_tea
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute('''
-            INSERT INTO content (subject, content_type, title, data) 
-            VALUES (?, ?, ?, ?)
-        ''', (data['subject'], data['type'], data['title'], data['url']))
+        cursor.execute('INSERT INTO content (subject, content_type, title, data) VALUES (?, ?, ?, ?)', 
+                       (data['subject'], data['type'], data['title'], data['url']))
         conn.commit()
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
     finally:
         conn.close()
-
-@app.get("/api/results")
-def get_results_api(username: str = Depends(authenticate_teacher)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT student_name, total_percent, summary, subject, timestamp FROM results ORDER BY timestamp DESC')
-    rows = cursor.fetchall()
-    conn.close()
-    
-    return [{
-        "name": r["student_name"],
-        "percent": r["total_percent"],
-        "feedback": r["summary"],
-        "subject": r["subject"],
-        "date": r["timestamp"]
-    } for r in rows]
