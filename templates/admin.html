@@ -3,84 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Ai Adaptiv Edu</title>
+    <title>Super Admin - AI Adaptiv Edu</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --sidebar-bg: #2c3e50; --main-bg: #f8f9fc; }
-        body { background-color: var(--main-bg); font-family: 'Inter', sans-serif; }
-        .sidebar { background: var(--sidebar-bg); color: white; min-height: 100vh; padding: 25px; transition: 0.3s; }
-        .nav-link { color: rgba(255,255,255,0.7); padding: 12px; border-radius: 10px; margin-bottom: 5px; transition: 0.3s; }
-        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
-        .card-stat { border-radius: 15px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); transition: 0.3s; }
-        .card-stat:hover { transform: translateY(-5px); }
-        .table-container { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 25px rgba(0,0,0,0.06); }
-        .badge-percent { font-size: 0.85rem; padding: 7px 14px; border-radius: 50px; font-weight: 600; }
-        .subject-tag { background: #eef2f7; color: #4e73df; padding: 4px 10px; border-radius: 5px; font-size: 0.8rem; font-weight: bold; }
+        :root { --sidebar-bg: #1e293b; --accent: #6366f1; --bg: #f8f9fc; }
+        body { background-color: var(--bg); font-family: 'Inter', sans-serif; }
+        .sidebar { background: var(--sidebar-bg); color: white; min-height: 100vh; padding: 25px; position: fixed; width: 250px; }
+        .main-content { margin-left: 250px; padding: 40px; }
+        .nav-link { color: #94a3b8; padding: 12px; border-radius: 10px; margin-bottom: 8px; transition: 0.3s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; display: block; text-decoration: none; }
+        .nav-link:hover, .nav-link.active { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+        .card-custom { border-radius: 20px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); background: white; padding: 25px; }
+        .form-control, .form-select { border-radius: 12px; padding: 12px; border: 1px solid #e2e8f0; }
+        .btn-primary { background: var(--accent); border: none; border-radius: 12px; padding: 12px 25px; font-weight: 600; }
+        .subject-tag { background: #eef2f7; color: #4e73df; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-2 sidebar d-none d-md-block shadow">
-                <div class="text-center mb-5">
-                    <h4 class="fw-bold text-info"><i class="fas fa-robot me-2"></i>AI-EDU</h4>
-                    <small class="text-muted">Boshqaruv Paneli</small>
+
+    <div class="sidebar shadow">
+        <div class="text-center mb-5">
+            <h3 class="fw-bold text-white"><i class="fas fa-microchip me-2 text-accent"></i>AI-EDU</h3>
+            <span class="badge bg-primary">BMI Boshqaruv</span>
+        </div>
+        <nav class="nav flex-column">
+            <button class="nav-link active" onclick="showTab('results-section')"><i class="fas fa-chart-bar me-2"></i> Natijalar Tahlili</button>
+            <button class="nav-link" onclick="showTab('content-section')"><i class="fas fa-clapperboard me-2"></i> Kontent (Reels/Lesson)</button>
+            <button class="nav-link" onclick="showTab('attendance-section')"><i class="fas fa-user-check me-2"></i> Davomat & O'quvchilar</button>
+            <a href="/" class="nav-link mt-5 text-danger"><i class="fas fa-sign-out-alt me-2"></i> Chiqish</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div id="results-section" class="tab-pane">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold">O'quvchilar Natijalari</h2>
+                <button class="btn btn-outline-primary" onclick="loadResults()"><i class="fas fa-sync"></i> Yangilash</button>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card-custom text-center">
+                        <h6 class="text-muted text-uppercase">Jami Urinishlar</h6>
+                        <h2 id="total-students" class="fw-bold text-primary">0</h2>
+                    </div>
                 </div>
-                <nav class="nav flex-column">
-                    <a href="/" class="nav-link"><i class="fas fa-home me-2"></i> Asosiy Sahifa</a>
-                    <a href="/admin" class="nav-link active"><i class="fas fa-chart-line me-2"></i> Natijalar</a>
-                    <a href="#" class="nav-link"><i class="fas fa-users me-2"></i> O'quvchilar</a>
-                    <a href="#" class="nav-link"><i class="fas fa-cog me-2"></i> Sozlamalar</a>
-                </nav>
+                <div class="col-md-4">
+                    <div class="card-custom text-center">
+                        <h6 class="text-muted text-uppercase">O'rtacha Bilim</h6>
+                        <h2 id="avg-percent" class="fw-bold text-success">0%</h2>
+                    </div>
+                </div>
             </div>
 
-            <div class="col-md-10 p-5">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="fw-bold text-dark">O'quvchilar Natijalari Tahlili</h2>
-                    <button class="btn btn-outline-primary" onclick="loadResults()"><i class="fas fa-sync-alt me-2"></i>Yangilash</button>
-                </div>
-                
-                <div class="row mb-5">
-                    <div class="col-md-3">
-                        <div class="card card-stat p-4 text-center border-start border-primary border-5">
-                            <h6 class="text-muted text-uppercase mb-2">Jami Urinishlar</h6>
-                            <h2 id="total-students" class="fw-bold text-primary">0</h2>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card card-stat p-4 text-center border-start border-success border-5">
-                            <h6 class="text-muted text-uppercase mb-2">O'rtacha Foiz</h6>
-                            <h2 id="avg-percent" class="fw-bold text-success">0%</h2>
-                        </div>
-                    </div>
-                </div>
+            <div class="card-custom">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>O'QUVCHI</th>
+                            <th>FAN</th>
+                            <th>NATIJA</th>
+                            <th>AI XULOSASI</th>
+                            <th>SANA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table"></tbody>
+                </table>
+            </div>
+        </div>
 
-                <div class="table-container animate__animated animate__fadeIn">
-                    <table class="table table-hover align-middle border-0">
-                        <thead class="bg-light">
-                            <tr class="text-muted">
-                                <th>O'QUVCHI</th>
-                                <th>FAN</th>
-                                <th>NATIJA</th>
-                                <th>AI TAHLILI</th>
-                                <th>SANA</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results">
-                            </tbody>
-                    </table>
+        <div id="content-section" class="tab-pane d-none">
+            <h2 class="fw-bold mb-4">Yangi Kontent Qo'shish (BMI Moduli)</h2>
+            <div class="card-custom mb-5">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Fan</label>
+                        <select id="c-subject" class="form-select">
+                            <option value="Matematika">Matematika</option>
+                            <option value="Informatika">Informatika</option>
+                            <option value="Fizika">Fizika</option>
+                            <option value="Ingliz tili">Ingliz tili</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Turi</label>
+                        <select id="c-type" class="form-select">
+                            <option value="reels">🎬 Reels (Shorts)</option>
+                            <option value="lesson">📚 Video Dars</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Sarlavha</label>
+                        <input type="text" id="c-title" class="form-control" placeholder="Mavzu nomi">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">YouTube ID</label>
+                        <input type="text" id="c-url" class="form-control" placeholder="Masalan: 2ePf9rue1Ao">
+                    </div>
+                    <div class="col-12 mt-4">
+                        <button class="btn btn-primary w-100" onclick="saveContent()">Bazaga Saqlash va Individuallashtirish</button>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <div id="attendance-section" class="tab-pane d-none">
+            <h2 class="fw-bold mb-4">O'quvchilar va Davomat Nazorati</h2>
+            <div class="card-custom">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Bu bo'lim orqali ota-onalarga avtomatik xabar yuborish tizimi boshqariladi.
+                </div>
+                <table class="table table-bordered mt-4 text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>F.I.SH</th>
+                            <th>Guruh</th>
+                            <th>Davomat Holati</th>
+                            <th>Ota-onaga xabar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Jungle Student</td>
+                            <td>AI-2026</td>
+                            <td><span class="badge bg-success">Darsda</span></td>
+                            <td><button class="btn btn-sm btn-info text-white"><i class="fab fa-telegram-plane"></i> Yuborish</button></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
     <script>
+        function showTab(id) {
+            document.querySelectorAll('.tab-pane').forEach(t => t.classList.add('d-none'));
+            document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+            document.getElementById(id).classList.remove('d-none');
+            event.target.classList.add('active');
+        }
+
+        function saveContent() {
+            const data = {
+                subject: document.getElementById('c-subject').value,
+                type: document.getElementById('c-type').value,
+                title: document.getElementById('c-title').value,
+                url: document.getElementById('c-url').value
+            };
+            if(!data.title || !data.url) return alert("Hamma maydonlarni to'ldiring!");
+
+            fetch('/api/add_content', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }).then(() => {
+                alert("Kontent muvaffaqiyatli qo'shildi!");
+                location.reload();
+            });
+        }
+
         function loadResults() {
             fetch("/api/results")
-                .then(res => res.status === 401 ? (alert("Kirish taqiqlandi!"), []) : res.json())
+                .then(res => res.json())
                 .then(data => {
-                    const table = document.getElementById("results");
+                    const table = document.getElementById("results-table");
                     document.getElementById("total-students").innerText = data.length;
                     
                     if (data.length > 0) {
@@ -88,38 +174,23 @@
                         document.getElementById("avg-percent").innerText = Math.round(avg) + "%";
                     }
 
-                    if (data.length === 0) {
-                        table.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted">Hali natijalar mavjud emas.</td></tr>`;
-                        return;
-                    }
-
                     table.innerHTML = data.map(r => `
                         <tr>
+                            <td><div class="fw-bold">${r.name}</div></td>
+                            <td><span class="subject-tag">${r.subject}</span></td>
                             <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                        ${r.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <span class="fw-bold">${r.name}</span>
-                                </div>
-                            </td>
-                            <td><span class="subject-tag">${r.subject || 'Umumiy'}</span></td>
-                            <td>
-                                <span class="badge-percent ${r.percent >= 80 ? 'bg-success text-white' : (r.percent >= 50 ? 'bg-warning text-dark' : 'bg-danger text-white')}">
+                                <span class="badge rounded-pill ${r.percent >= 80 ? 'bg-success' : 'bg-warning text-dark'}">
                                     ${r.percent}%
                                 </span>
                             </td>
-                            <td><small class="text-dark">${r.feedback}</small></td>
+                            <td style="max-width:300px"><small>${r.feedback}</small></td>
                             <td class="text-muted small">${new Date(r.date).toLocaleString('uz-UZ')}</td>
                         </tr>
                     `).join('');
-                })
-                .catch(err => console.error("Xatolik:", err));
+                });
         }
 
         loadResults();
-        // Har 30 soniyada ma'lumotlarni avtomatik yangilab turish
-        setInterval(loadResults, 30000);
     </script>
 </body>
 </html>
